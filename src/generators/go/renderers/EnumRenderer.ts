@@ -12,8 +12,28 @@ export class EnumRenderer extends GoRenderer {
     const type = this.enumType(this.model);
     const doc = formattedName && this.renderCommentForEnumType(formattedName, type);
 
-    return `${doc}
+    const content = `${doc}
 type ${formattedName} ${type}`;
+
+    const values = this.model?.enum;
+    if (values) {
+      return `${content}
+
+const (
+${values
+    .map((val, i) => this.enumValue(formattedName, val, i === 0))
+    .join('\n')}
+)`;
+    }
+
+    return content;
+  }
+
+  enumValue(enumName: string, value: string, setType: boolean): string {
+    const typeDeclaration = setType ? ` ${enumName}` : '';
+    return `  ${enumName}${this.nameType(
+      value
+    )}${typeDeclaration} = "${value}"`;
   }
 
   enumType(model: CommonModel): string {
