@@ -1,10 +1,80 @@
+import { parse } from '@asyncapi/parser';
 import { GoGenerator } from '../../../src/generators';
+import { InputProcessor } from '../../../src/processors';
 
 describe('GoGenerator', () => {
   let generator: GoGenerator;
   beforeEach(() => {
     generator = new GoGenerator();
   });
+
+  test.only('should render a complete doc with a shared enum type', async () => {
+    const doc = `
+      asyncapi: 2.2.0
+      info:
+        title: Auth Events
+        version: 0.0.0
+      channels:
+        emailVerification:
+          publish:
+            message:
+              payload:
+                type: object
+                $id: email_verification
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                required:
+                  - status
+        phoneVerification:
+          publish:
+            message:
+              payload:
+                type: object
+                $id: phone_verification
+                properties:
+                  status:
+                    $ref: "#/components/schemas/status"
+                additionalProperties: false
+                required:
+                  - status
+
+      components:
+        schemas:
+          status:
+            $id: status
+            type: string
+            enum: ['pending', 'failed', 'successful']
+    `;
+
+    const parsedDoc = await parse(doc);
+    generator = new GoGenerator();
+    const models = await generator.generate(parsedDoc as any);
+    expect(models).toHaveLength(3);
+    expect(models.map(({ result }) => result).join('\n\n'))
+      .toMatchInlineSnapshot(`
+      "// EmailVerification represents a EmailVerification model.
+      type EmailVerification struct {
+        Status *Status json:\\"status,omitempty\\"
+        AdditionalProperties map[string][]interface{}
+      }
+
+      // Status represents an enum of string.
+      type Status string
+
+      const (
+        StatusPending Status = \\"pending\\"
+        StatusFailed = \\"failed\\"
+        StatusSuccessful = \\"successful\\"
+      )
+
+      // PhoneVerification represents a PhoneVerification model.
+      type PhoneVerification struct {
+        Status *Status json:\\"status,omitempty\\"
+      }"
+    `);
+  });
+
   test('should render `struct` type', async () => {
     const doc = {
       $id: '_address',

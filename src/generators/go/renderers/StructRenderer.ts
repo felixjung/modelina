@@ -27,12 +27,21 @@ export const GO_DEFAULT_STRUCT_PRESET: StructPreset<StructRenderer> = {
   self({ renderer }) {
     return renderer.defaultSelf();
   },
-  field({ fieldName, field, renderer, type }) {
-    fieldName = renderer.nameField(fieldName, field);
+  field({ fieldName, field, renderer, type, model }) {
+    const formattedFieldName = renderer.nameField(fieldName, field);
     let fieldType = renderer.renderType(field);
-    if (type === FieldType.additionalProperty || type === FieldType.patternProperties) {
-      fieldType = `map[string]${fieldType}`; 
+    let tags = ` json:"${fieldName},omitempty"`;
+    let pointer = model.isRequired(fieldName) ? '' : '*';
+
+    if (
+      type === FieldType.additionalProperty ||
+      type === FieldType.patternProperties
+    ) {
+      fieldType = `map[string]${fieldType}`;
+      tags = '';
+      pointer = '';
     }
-    return `${ fieldName } ${ fieldType }`;
+
+    return `${formattedFieldName} ${pointer}${fieldType}${tags}`;
   },
 };
